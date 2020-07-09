@@ -2,103 +2,133 @@
 
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+use Yii;
+use yii\db\ActiveRecord;
+use yii\web\IdentityInterface;
+use Swagger\Annotations as SWG;
+use yii\behaviors\TimestampBehavior;
+
+/**
+ * Class User
+ *
+ * @SWG\SecurityScheme(
+ *      securityDefinition="bearAuth",
+ *      type="apiKey",
+ *      description="Bear token for authorization",
+ *      name="BearAuth",
+ *      in="header",
+ * )
+ *
+ * @property int    $id
+ * @property string $username
+ * @property string $email
+ * @property string $auth_key
+ * @property string $password_hash
+ * @property string $password_reset_token
+ * @property int    $created_at
+ * @property int    $updated_at
+ *
+ * @package app\models
+ */
+class User extends ActiveRecord implements IdentityInterface
 {
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
-
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
-
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentity($id)
-    {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentityByAccessToken($token, $type = null)
-    {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Finds user by username
-     *
-     * @param string $username
-     * @return static|null
-     */
-    public static function findByUsername($username)
-    {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getAuthKey()
-    {
-        return $this->authKey;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function validateAuthKey($authKey)
-    {
-        return $this->authKey === $authKey;
-    }
-
-    /**
-     * Validates password
-     *
-     * @param string $password password to validate
-     * @return bool if password provided is valid for current user
-     */
-    public function validatePassword($password)
-    {
-        return $this->password === $password;
-    }
+	/** @var int Активный */
+	public const STATUS_ACTIVE = 10;
+	
+	/** @var int Не активный */
+	public const STATUS_INACTIVE = 0;
+	
+	/** @var int Заблокированный */
+	public const STATUS_BLOCK = 12;
+	
+	/** @inheritDoc */
+	public function behaviors()
+	{
+		return [
+			'timestamp' => [
+				'class'      => TimestampBehavior::class,
+				'attributes' => [
+					ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+					ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+				],
+			],
+		];
+	}
+	
+	public function rules()
+	{
+		return [
+			[['username', 'email', 'password_hash', 'auth_key'], 'string'],
+			['status_id', 'integer'],
+			['status_id', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_BLOCK]],
+		];
+	}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function findIdentity($id)
+	{
+		return UserRepository::getById($id);
+	}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function findIdentityByAccessToken($token, $type = null)
+	{
+		$user = UserRepository::getByAuthKey($token);
+		
+		return $user ?? null;
+	}
+	
+	/**
+	 * Finds user by username
+	 *
+	 * @param  string  $username
+	 *
+	 * @return static|null
+	 */
+	public static function findByUsername($username)
+	{
+		$user = UserRepository::getByUsername($username);
+		
+		return $user ?? null;
+	}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getId()
+	{
+		return $this->id;
+	}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getAuthKey()
+	{
+		return $this->auth_key;
+	}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public function validateAuthKey($authKey)
+	{
+		return $this->auth_key === $authKey;
+	}
+	
+	/**
+	 * Validates password
+	 *
+	 * @param  string  $password  password to validate
+	 *
+	 * @return bool if password provided is valid for current user
+	 */
+	public function validatePassword($password)
+	{
+		return Yii::$app->security->validatePassword($password, $this->password_hash);
+	}
 }
