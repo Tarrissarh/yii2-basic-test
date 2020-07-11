@@ -1,16 +1,16 @@
 <?php
 
-namespace app\views;
+namespace app\responses;
 
 use yii\helpers\ArrayHelper;
 use app\models\User;
 
 /**
- * Class UserView
+ * Class UserResponse
  *
- * @package app\views
+ * @package app\responses
  */
-class UserView
+class UserResponse
 {
 	/**
 	 * @param  User|null|array|\yii\db\ActiveRecord|\yii\db\ActiveRecordInterface  $object

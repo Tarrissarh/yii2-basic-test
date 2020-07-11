@@ -4,8 +4,10 @@ namespace app\actions;
 
 use app\models\User;
 use Yii;
+use yii\db\ActiveRecordInterface;
 use yii\helpers\Json;
 use yii\rest\DeleteAction as YiiRestDeleteAction;
+use yii\web\HttpException;
 use yii\web\ServerErrorHttpException;
 
 /**
@@ -20,6 +22,12 @@ class DeleteAction extends YiiRestDeleteAction
 	{
 		$model = $this->findModel($id);
 		
+		if ($model === null) {
+			Yii::$app->getResponse()->setStatusCode(404);
+			
+			return ['errors' => ['id' => 'В БД нет такого ID']];
+		}
+		
 		if ($this->checkAccess) {
 			call_user_func($this->checkAccess, $this->id, $model);
 		}
@@ -32,6 +40,34 @@ class DeleteAction extends YiiRestDeleteAction
 		
 		Yii::$app->getResponse()->setStatusCode(204);
 		
-		return Json::encode([]);
+		return [];
+	}
+	
+	/** @inheritDoc */
+	public function findModel($id)
+	{
+		if ($this->findModel !== null) {
+			return call_user_func($this->findModel, $id, $this);
+		}
+		
+		/* @var $modelClass ActiveRecordInterface */
+		$modelClass = $this->modelClass;
+		$keys       = $modelClass::primaryKey();
+		
+		if (count($keys) > 1) {
+			$values = explode(',', $id);
+			
+			if (count($keys) === count($values)) {
+				$model = $modelClass::findOne(array_combine($keys, $values));
+			}
+		} elseif ($id !== null) {
+			$model = $modelClass::findOne($id);
+		}
+		
+		if (isset($model)) {
+			return $model;
+		}
+		
+		return null;
 	}
 }

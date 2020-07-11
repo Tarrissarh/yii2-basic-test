@@ -3,11 +3,10 @@
 namespace app\actions;
 
 use Yii;
-use yii\helpers\Json;
-use yii\helpers\Url;
 use yii\rest\CreateAction as YiiRestCreateAction;
 use yii\web\ServerErrorHttpException;
-use app\views\UserView;
+use app\responses\UserResponse;
+use app\models\UserRepository;
 
 /**
  * Class CreateAction
@@ -32,6 +31,26 @@ class CreateAction extends YiiRestCreateAction
 		
 		$params = Yii::$app->getRequest()->getBodyParams();
 		
+		if (!empty($params['email'])) {
+			$user = UserRepository::getByEmail($params['email']);
+			
+			if ($user !== null) {
+				Yii::$app->getResponse()->setStatusCode(422);
+				
+				return ['errors' => ['email' => 'Данный email занят']];
+			}
+		}
+		
+		if (!empty($this->username)) {
+			$user = UserRepository::getByUsername($this->username);
+			
+			if ($user !== null) {
+				Yii::$app->getResponse()->setStatusCode(422);
+				
+				return ['errors' => ['username' => 'Данный username занят']];
+			}
+		}
+		
 		if (!empty($params['password'])) {
 			$params['password_hash'] = Yii::$app->getSecurity()->generatePasswordHash($params['password']);
 		}
@@ -44,12 +63,10 @@ class CreateAction extends YiiRestCreateAction
 		if ($model->save()) {
 			$response = Yii::$app->getResponse();
 			$response->setStatusCode(201);
-			$id = implode(',', array_values($model->getPrimaryKey(true)));
-			$response->getHeaders()->set('Location', Url::toRoute([$this->viewAction, 'id' => $id], true));
 		} elseif (!$model->hasErrors()) {
 			throw new ServerErrorHttpException('Failed to create the object for unknown reason.');
 		}
 		
-		return Json::encode(UserView::render($model));
+		return UserResponse::render($model);
 	}
 }

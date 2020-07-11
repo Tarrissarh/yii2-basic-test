@@ -1,5 +1,6 @@
 <?php
 
+use yii\web\JsonParser;
 use yii\web\JsonResponseFormatter;
 use yii\rest\UrlRule;
 use yii\web\UrlManager;
@@ -60,34 +61,15 @@ return [
 		'suffix'              => '/',
 		'rules'               => [
 			// Правила для rest варианта
-			/*''           => 'rest/swg-api',
-			'swg-config' => 'rest/swg-config',
+			'/auth/' => '/user/auth',
 			
-			['class' => UrlRule::class, 'controller' => 'rest'],
-			
-			'/<action>'           => '/rest/<action>',
-			'/<action>/'          => '/rest/<action>',
-			'/<action>/<id:\d+>'  => '/rest/<action>',
-			'/<action>/<id:\d+>/' => '/rest/<action>',*/
-			
-			// Правила для кастомного варианта
-			''           => 'default/swg-api',
-			'swg-config' => 'default/swg-config',
-			
-			'/default/error'             => '/default/error',
-			'/default/<action>'          => '/default/<action>',
-			'/default/<action>/<id:\d+>' => '/default/<action>',
-			
-			'/<action>'          => '/default/<action>',
-			'/<action>/<id:\d+>' => '/default/<action>',
-			
-			// Общее для всех правило
-			'/<controller>/<action>'          => '/<controller>/<action>',
-			'/<controller>/<action>/<id:\d+>' => '/<controller>/<action>',
+			[
+				'class'      => UrlRule::class,
+				'controller' => 'user',
+			],
 		],
 	],
 	'errorHandler' => [
-		//'errorAction' => 'rest/error',
-		'errorAction' => 'default/error',
+		'errorAction' => 'user/error',
 	],
 ];
