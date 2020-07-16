@@ -61,10 +61,11 @@ return [
 		'suffix'              => '/',
 		'rules'               => [
 			// Правила для rest варианта
-			'/auth/' => '/user/auth',
+			'/v1/auth/' => '/user/auth',
 			
 			[
 				'class'      => UrlRule::class,
+				'prefix'     => 'v1',
 				'controller' => 'user',
 			],
 		],

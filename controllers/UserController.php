@@ -31,7 +31,7 @@ class UserController extends ActiveController
 				'authenticator' => [
 					'class'    => HttpBearerAuth::class,
 					'optional' => ['*'],
-					'except'   => ['auth'],
+					'except'   => ['auth', 'error'],
 				],
 				'access'        => [
 					'class' => AccessControl::class,
