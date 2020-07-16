@@ -1,26 +1,45 @@
 <?php
 
-use yii\web\JsonParser;
 use yii\web\JsonResponseFormatter;
 use yii\rest\UrlRule;
 use yii\web\UrlManager;
 use yii\db\Connection;
-use app\models\User;
 use yii\caching\FileCache;
 use yii\log\FileTarget;
 use yii\swiftmailer\Mailer;
 use yii\web\Response;
+use app\models\User;
 
 return [
 	'response'     => [
-		'class'      => Response::class,
-		'formatters' => [
-			Response::FORMAT_JSON => [
-				'class'         => JsonResponseFormatter::class,
-				'prettyPrint'   => YII_DEBUG, // используем "pretty" в режиме отладки
-				'encodeOptions' => JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
-			],
-		],
+		'class'         => Response::class,
+		'on beforeSend' => static function($event) {
+			/** @var Response $response */
+			$response = $event->sender;
+			
+			$request = Yii::$app->getRequest();
+			
+			// Для ajax запроса или методов дебага устанавливаем ответ json
+			if ($request->isAjax && strpos($request->getUrl(), 'debug') === false) {
+				$response->format     = Response::FORMAT_JSON;
+				$response->formatters = [
+					Response::FORMAT_JSON => [
+						'class'         => JsonResponseFormatter::class,
+						'prettyPrint'   => YII_DEBUG, // используем "pretty" в режиме отладки
+						'encodeOptions' => JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+					],
+				];
+			} else {
+				// Для swagger выводим данные
+				if (in_array($request->getUrl(), ['/', '/swg-config/'], false)) {
+					echo $response->data;
+					exit;
+				}
+				
+				// В остальных случаях возвращаем данные
+				return $response->data;
+			}
+		},
 	],
 	'request'      => [
 		'enableCookieValidation' => false,
@@ -60,8 +79,11 @@ return [
 		'enableStrictParsing' => true,
 		'suffix'              => '/',
 		'rules'               => [
+			''           => 'user/swg-api',
+			'swg-config' => 'user/swg-config',
+			
 			// Правила для rest варианта
-			'/v1/auth/' => '/user/auth',
+			'/v1/auth/'  => '/user/auth',
 			
 			[
 				'class'      => UrlRule::class,

@@ -38,7 +38,7 @@ class DeleteAction extends YiiRestDeleteAction
 			throw new ServerErrorHttpException('Failed to delete the object for unknown reason.');
 		}
 		
-		Yii::$app->getResponse()->setStatusCode(204);
+		Yii::$app->getResponse()->setStatusCode(202);
 		
 		return [];
 	}
