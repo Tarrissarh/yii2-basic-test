@@ -39,4 +39,14 @@ class UserRepository
 	{
 		return User::findOne(['username' => $username]);
 	}
+	
+	/**
+	 * @param  string  $email
+	 *
+	 * @return \app\models\User|null
+	 */
+	public static function getByEmail(string $email): ?User
+	{
+		return User::findOne(['email' => $email]);
+	}
 }

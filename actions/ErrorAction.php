@@ -3,7 +3,6 @@
 namespace app\actions;
 
 use Yii;
-use yii\helpers\Json;
 use yii\web\ErrorAction as YiiErrorAction;
 
 /**
@@ -16,16 +15,14 @@ class ErrorAction extends YiiErrorAction
 	/**
 	 * Runs the action.
 	 *
-	 * @return string result content
+	 * @return array result content
 	 */
 	public function run()
 	{
 		Yii::$app->getResponse()->setStatusCodeByException($this->exception);
 		
-		return Json::encode(
-			[
-				'errors' => [$this->exception->getMessage()],
-			]
-		);
+		return [
+			'errors' => [$this->exception->getMessage()],
+		];
 	}
 }

@@ -5,19 +5,10 @@ namespace app\models;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
-use Swagger\Annotations as SWG;
 use yii\behaviors\TimestampBehavior;
 
 /**
  * Class User
- *
- * @SWG\SecurityScheme(
- *      securityDefinition="bearAuth",
- *      type="apiKey",
- *      description="Bear token for authorization",
- *      name="BearAuth",
- *      in="header",
- * )
  *
  * @property int    $id
  * @property string $username
@@ -129,6 +120,6 @@ class User extends ActiveRecord implements IdentityInterface
 	 */
 	public function validatePassword($password)
 	{
-		return Yii::$app->security->validatePassword($password, $this->password_hash);
+		return Yii::$app->getSecurity()->validatePassword($password, $this->password_hash);
 	}
 }

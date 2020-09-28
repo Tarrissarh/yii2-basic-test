@@ -10,9 +10,9 @@ use yii\helpers\ArrayHelper;
 use yii\helpers\Json;
 use yii\helpers\Url;
 use yii\rest\ActiveController;
+use Swagger\Annotations as SWG;
 use yii2mod\swagger\OpenAPIRenderer;
 use yii2mod\swagger\SwaggerUIRenderer;
-use Swagger\Annotations as SWG;
 use app\models\User;
 use app\actions\ErrorAction;
 use app\forms\AuthForm;
@@ -25,53 +25,69 @@ use app\actions\DeleteAction;
  * Class RestController
  *
  * @SWG\Swagger(
- *     basePath="/",
+ *     basePath="/v1/",
  *     produces={"application/json"},
  *     consumes={"application/x-www-form-urlencoded"},
  *     @SWG\Info(version="1.0", title="Simple API"),
  * )
  *
+ * @SWG\SecurityScheme(
+ *      securityDefinition="Authorization",
+ *      type="apiKey",
+ *      description="Bear token for authorization",
+ *      name="Authorization",
+ *      in="header",
+ * )
+ *
  * @package app\controllers
  */
-class RestController extends ActiveController
+class UserController extends ActiveController
 {
 	public $modelClass = User::class;
 	
 	/** @inheritDoc */
 	public function behaviors()
 	{
-		return [
-			'authenticator' => [
-				'class'    => HttpBearerAuth::class,
-				'optional' => ['*'],
-				'except'   => ['swg-api', 'swg-config'],
-			],
-			'access'        => [
-				'class' => AccessControl::class,
-				'rules' => [
-					[
-						'allow'   => true,
-						'actions' => ['view', 'create', 'delete', 'update'],
-						'roles'   => ['@'],
-					],
-					[
-						'allow'   => true,
-						'actions' => ['auth', 'swg-api', 'swg-config', 'error'],
-						'roles'   => ['?'],
+		return ArrayHelper::merge(
+			parent::behaviors(),
+			[
+				'verbFilter'    => [
+					'class'   => VerbFilter::class,
+					'actions' => [
+						'view'   => ['GET'],
+						'create' => ['POST'],
+						'update' => ['PUT'],
+						'delete' => ['DELETE'],
 					],
 				],
-			],
-			'verbs'         => [
-				'class'   => VerbFilter::class,
-				'actions' => [
-					'view'   => ['GET'],
-					'create' => ['POST'],
-					'auth'   => ['POST'],
-					'delete' => ['DELETE'],
-					'update' => ['PUT'],
+				'authenticator' => [
+					'class'    => HttpBearerAuth::class,
+					'optional' => ['*'],
+					'except'   => ['auth', 'error', 'swg-api', 'swg-config'],
 				],
-			],
-		];
+				'access'        => [
+					'class' => AccessControl::class,
+					'rules' => [
+						[
+							'allow'   => true,
+							'actions' => ['auth', 'error', 'swg-api', 'swg-config'],
+							'roles'   => ['?'],
+						],
+						[
+							'allow'   => true,
+							'actions' => ['view', 'create', 'update', 'delete'],
+							'roles'   => ['@'],
+						],
+					],
+				],
+				'verbs'         => [
+					'class'   => VerbFilter::class,
+					'actions' => [
+						'auth' => ['POST'],
+					],
+				],
+			]
+		);
 	}
 	
 	/**
@@ -80,6 +96,19 @@ class RestController extends ActiveController
 	public function actions()
 	{
 		return [
+			'error'      => ['class' => ErrorAction::class],
+			'swg-api'    => [
+				'class'   => SwaggerUIRenderer::class,
+				'restUrl' => Url::to(['user/swg-config']),
+			],
+			'swg-config' => [
+				'class'   => OpenAPIRenderer::class,
+				'cache'   => null,
+				'scanDir' => [
+					Yii::getAlias('@app/controllers') . '/UserController.php',
+					Yii::getAlias('@app/responses'),
+				],
+			],
 			'view'       => [
 				'class'       => ViewAction::class,
 				'modelClass'  => $this->modelClass,
@@ -101,21 +130,6 @@ class RestController extends ActiveController
 				'class'       => DeleteAction::class,
 				'modelClass'  => $this->modelClass,
 				'checkAccess' => [$this, 'checkAccess'],
-			],
-			'swg-api'    => [
-				'class'   => SwaggerUIRenderer::class,
-				'restUrl' => Url::to(['rest/swg-config']),
-			],
-			'swg-config' => [
-				'class'   => OpenAPIRenderer::class,
-				'cache'   => null,
-				'scanDir' => [
-					Yii::getAlias('@app/controllers') . '/RestController.php',
-					Yii::getAlias('@app/models'),
-				],
-			],
-			'error'      => [
-				'class' => ErrorAction::class,
 			],
 		];
 	}
@@ -146,7 +160,7 @@ class RestController extends ActiveController
 	 *          type="string",
 	 *     ),
 	 *     @SWG\Response(
-	 *          response=201,
+	 *          response=200,
 	 *          description="Успешная операция",
 	 *          @SWG\Schema(
 	 *              @SWG\Property(property="authKey", type="string", description="Ключ авторизации",
@@ -180,18 +194,18 @@ class RestController extends ActiveController
 			return Json::encode($form->getErrors());
 		}
 		
-		return Json::encode(['authKey' => $form->getAuthKey()]);
+		return ['authKey' => $form->getAuthKey()];
 	}
 	
 	/**
 	 * @SWG\Get(
-	 *     path="/view/{id}/",
+	 *     path="/users/{id}/",
 	 *     tags={"User"},
 	 *     description="Информация о пользователе",
 	 *     produces={"application/json"},
 	 *     consumes={"application/x-www-form-urlencoded"},
 	 *     security={
-	 *          {"bearAuth":{}}
+	 *          {"Authorization":{}}
 	 *     },
 	 *     @SWG\Parameter(
 	 *          name="id",
@@ -226,13 +240,13 @@ class RestController extends ActiveController
 	
 	/**
 	 * @SWG\Post(
-	 *     path="/create/",
+	 *     path="/users/",
 	 *     tags={"User"},
-	 *     description="Создание пользователя",
+	 *     description="Создание нового пользователя",
 	 *     produces={"application/json"},
 	 *     consumes={"application/x-www-form-urlencoded"},
 	 *     security={
-	 *          {"bearAuth":{}}
+	 *          {"Authorization":{}}
 	 *     },
 	 *     @SWG\Parameter(
 	 *          name="email",
@@ -280,13 +294,13 @@ class RestController extends ActiveController
 	
 	/**
 	 * @SWG\Put(
-	 *     path="/update/{id}/",
+	 *     path="/users/{id}/",
 	 *     tags={"User"},
-	 *     description="Создание пользователя",
+	 *     description="Обновление данных пользователя",
 	 *     produces={"application/json"},
 	 *     consumes={"application/x-www-form-urlencoded"},
 	 *     security={
-	 *          {"bearAuth":{}}
+	 *          {"Authorization":{}}
 	 *     },
 	 *     @SWG\Parameter(
 	 *          name="id",
@@ -339,13 +353,13 @@ class RestController extends ActiveController
 	
 	/**
 	 * @SWG\Delete(
-	 *     path="/delete/{id}/",
+	 *     path="/users/{id}/",
 	 *     tags={"User"},
-	 *     description="Информация о пользователе",
+	 *     description="Удаление (отключение) пользователя",
 	 *     produces={"application/json"},
 	 *     consumes={"application/x-www-form-urlencoded"},
 	 *     security={
-	 *          {"bearAuth":{}}
+	 *          {"Authorization":{}}
 	 *     },
 	 *     @SWG\Parameter(
 	 *          name="id",

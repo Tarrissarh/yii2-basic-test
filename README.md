@@ -33,11 +33,11 @@ API Authorize - **bearer**
 Успешное выполнение
 
 Статус: **200**
-```javascript
+```json
 {
-  id:1,
-  username:'Test1',
-  email:'test@test.bcs'
+  "id":1,
+  "username":"Test1",
+  "email":"test@test.bcs"
 }
 ```
 Ошибка - в БД нет такого id с статусом 10
@@ -62,10 +62,12 @@ username - от 2 до 64 символов, без пробелов и спец�
 created_at, updated_at - стандартные Yii2 behaviors
 
 Body request example:
-```javascript
-username:Test1
-password:123456
-email:test@test.bcs
+```json
+{
+    "username":"Test1",
+    "password":123456,
+    "email":"test@test.bcs"
+}
 ```
 
 Успешное выполнение
@@ -74,11 +76,11 @@ email:test@test.bcs
 
 Response data (JSON):
 
-```javascript
+```json
 {
-  id:1,
-  username:'Test1',
-  email:'test@test.bcs'
+  "id":1,
+  "username":"Test1",
+  "email":"test@test.bcs"
 }
 ```
 Ошибка валидации
@@ -116,20 +118,22 @@ username, email, password.
 created_at, updated_at - стандартные Yii2 behaviors
 
 Body request example:
-```javascript
-username:Test2
-email:test3@test.bcs
+```json
+{
+    "username":"Test2",
+    "email":"test3@test.bcs"
+}
 ```
 Успешное выполнение
 
 Статус: **200**
 
-```javascript
 Response data (JSON):
+```json
 {
-  id:1,
-  username:'Test1',
-  email:'test@test.bcs'
+  "id":1,
+  "username":"Test1",
+  "email":"test@test.bcs"
 }
 ```
 Ошибка валидации
@@ -166,8 +170,69 @@ return [
 return [];
 ```
 
-В component.php можно использовать два варианта:
-1. Кастомный вариант
-2. Через Rest ActiveController Yii2
+____________________________________________________________
 
-Для этого нужно в urlManager в rules закомментировать одну из частей (rest закомментирована по умолчанию)
+**В функционал добавлен swagger для удобства работы с api.**
+
+____________________________________________________________
+
+# Описание запросов:
+### Авторизация:
+``` 
+curl --location --request POST 'http://test.basic.yii2.local/auth/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Cookie: _csrf=NUrG4dPz0rQOIgj8fpZEV0pOQqp19hcT' \
+--data-urlencode 'username={username}' \
+--data-urlencode 'password={password}'
+```
+
+`{username}` и `{password}` нужно заменить на актуальные запросы
+
+В ответ приходит json с authKey.
+
+### Просмотр данных пользователя
+``` 
+curl --location --request GET 'http://test.basic.yii2.local/users/{id}/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Bearer {authKey}' \
+```
+
+`{authKey}` - нужно заменить на ключ, полученный из запроса авторизации
+`{id}` - Идентификатор пользователя
+
+### Добавление нового пользователя
+``` 
+curl --location --request POST 'http://test.basic.yii2.local/users/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Bearer {authKey}' \
+--data-urlencode 'username={username}' \
+--data-urlencode 'email={email}' \
+--data-urlencode 'password={password}'
+```
+
+`{authKey}` - нужно заменить на ключ, полученный из запроса авторизации
+`{username}`, `{email}`, `{password}` - заменить на актуальные значения
+
+### Обновление данных пользователя (email, username, password)
+``` 
+curl --location --request PUT 'http://test.basic.yii2.local/users/{id}/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Bearer {authKey}' \
+--data-urlencode 'username={username}' \
+--data-urlencode 'email={email}' \
+--data-urlencode 'password={password}'
+```
+
+`{authKey}` - нужно заменить на ключ, полученный из запроса авторизации
+`{username}`, `{email}`, `{password}` - заменить на актуальные значения
+`{id}` - Идентификатор пользователя
+
+### Удаление (отключение) пользователя
+``` 
+curl --location --request DELETE 'http://test.basic.yii2.local/users/{id}/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Authorization: Bearer {authKey}' \
+```
+
+`{authKey}` - нужно заменить на ключ, полученный из запроса авторизации
+`{id}` - Идентификатор пользователя
